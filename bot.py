@@ -5,6 +5,7 @@ import random   #ランダム
 import ffmpeg
 import os
 import subprocess
+import glob
 
 # よくわからん。おまじない。
 intents = discord.Intents.default()
@@ -96,9 +97,12 @@ async def on_message(message):# メッセージが送られた時の処理
         elif message.guild.voice_client.is_playing():
             await message.channel.send("再生中です。")
         else:
-            source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio("../million/07 パンとフィルム.m4a"), volume=0.1)
+            musiclist = glob.glob('../million/*.m4a')
+            music = random.choice(musiclist)
+            music1 = os.path.split(music)[1]
+            source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(music), volume=0.1)
             message.guild.voice_client.play(source)
-            await message.channel.send("”パンとフィルム”を再生します。")
+            await message.channel.send("”"+music1+"”を再生します。")
 
     #停止処理
     elif message.content == "!stop":
