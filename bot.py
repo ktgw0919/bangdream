@@ -2,20 +2,39 @@
 import discord  #discord.py
 import re       #正規表現
 import random   #ランダム
-import ffmpeg
+import ffmpeg   #音楽再生
 import os
 import subprocess
-import glob
+import glob     #条件に一致するファイルを取得
+import time
+
+from pydub import AudioSegment
+
+def getTime(musicpath):
+    sound = AudioSegment.from_file(musicpath, "m4a")
+    # 情報の取得
+    time = sound.duration_seconds # 再生時間(秒)
+    # 情報の表示
+    print('再生時間：', time)
+    return time
+
 
 # よくわからん。おまじない。
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+async def sendMessage():
+    botRoom = client.get_channel(1011929691566903306)   # botが投稿するチャンネルのID
+    await botRoom.send("!play")
+
+
+
+
 # 起動時処理
 @client.event
 async def on_ready():
-    botRoom = client.get_channel(1009335677881696276)   # botが投稿するチャンネルのID取得
+    botRoom = client.get_channel(1011929691566903306)   # botが投稿するチャンネルのID
     await botRoom.send("BOTが起動しました!")
     #サーバーにあるチャンネル情報の取得
     for channel in client.get_all_channels():
@@ -34,13 +53,14 @@ async def on_ready():
 async def on_message(message):# メッセージが送られた時の処理
 
     # 送信者がBOTの場合反応しない
-    if message.author.bot:
-        return
+    #if message.author.bot:
+        #return
 
     # 挨拶機能
-    if message.content.startswith("おはよう"):  # メッセージが「おはよう」で始まるか調べる
-        m = "おはようございます " + message.author.name + " さん！"  # 返信の内容
-        await message.channel.send(m)# メッセージが送られてきたチャンネルへメッセージを送る
+    if client.user != message.author:
+        if message.content.startswith("おはよう"):  # メッセージが「おはよう」で始まるか調べる
+            m = "おはようございます " + message.author.name + " さん！"  # 返信の内容
+            await message.channel.send(m)# メッセージが送られてきたチャンネルへメッセージを送る
     
     
     # 猫語会話機能
@@ -52,6 +72,7 @@ async def on_message(message):# メッセージが送られた時の処理
         "にゃん",
         "にゃん？"
         ]
+    n=len(NyanList)
     # メッセージに"にゃ"が含まれているか調べる
     pattern=u'にゃ'
     content = message.content
@@ -59,7 +80,7 @@ async def on_message(message):# メッセージが送られた時の処理
     result=repattern.search(content)
     if result != None:
         if client.user != message.author:
-            nyan = NyanList[random.randint(0,4)]    # 返信内容をランダムで決定
+            nyan = NyanList[random.randint(0,n-1)]    # 返信内容をランダムで決定
             await message.channel.send(nyan)    # メッセージが送られてきたチャンネルへメッセージを送る
 
 
@@ -91,18 +112,27 @@ async def on_message(message):# メッセージが送られた時の処理
 
     #音楽再生
     #再生処理
+    musiclength=0
     if message.content == "!play":
         if message.guild.voice_client is None:
             await message.channel.send("接続していません。")
         elif message.guild.voice_client.is_playing():
             await message.channel.send("再生中です。")
         else:
+            #再生する曲をランダムで選択
             musiclist = glob.glob('../million/*.m4a')
             music = random.choice(musiclist)
+
+            musiclength = getTime(music)+2
+
             music1 = os.path.split(music)[1]
             source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(music), volume=0.1)
             message.guild.voice_client.play(source)
             await message.channel.send("”"+music1+"”を再生します。")
+            print(music1)
+            print(musiclength)
+
+            
 
     #停止処理
     elif message.content == "!stop":
@@ -142,3 +172,4 @@ async def on_voice_state_update(member, before, after):
 
 # Botのトークンを指定（デベロッパーサイトで確認可能）
 client.run("hoge")
+
