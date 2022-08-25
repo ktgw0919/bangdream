@@ -7,6 +7,8 @@ import os
 import subprocess
 import glob     #条件に一致するファイルを取得
 import time
+from discord.ext import commands
+import sche
 
 from pydub import AudioSegment
 
@@ -25,6 +27,7 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 async def sendMessage():
+    print("send")
     botRoom = client.get_channel(1011929691566903306)   # botが投稿するチャンネルのID
     await botRoom.send("!play")
 
@@ -51,6 +54,12 @@ async def on_ready():
 
 @client.event
 async def on_message(message):# メッセージが送られた時の処理
+
+    if client.user != message.author:
+        if message.content.startswith("test"): 
+            print("test")
+            sendMessage
+
 
     # 送信者がBOTの場合反応しない
     #if message.author.bot:
@@ -172,4 +181,5 @@ async def on_voice_state_update(member, before, after):
 
 # Botのトークンを指定（デベロッパーサイトで確認可能）
 client.run("hoge")
+
 
