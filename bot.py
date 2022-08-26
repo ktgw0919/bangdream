@@ -44,6 +44,7 @@ async def sendMessage():
 endless=False
 
 async def playmusic(message):
+    global endless
     if message.guild.voice_client is None:
         await message.channel.send("接続していません。")
     elif message.guild.voice_client.is_playing():
@@ -52,10 +53,6 @@ async def playmusic(message):
         #再生する曲をランダムで選択
         musiclist = glob.glob('../million/*.m4a')
         music = random.choice(musiclist)
-        if(endless == True):
-            print("endless is True")
-        else:
-            print("endless is False")
 
         musiclength = getTime(music)
 
@@ -66,10 +63,13 @@ async def playmusic(message):
         print(music1)
         print(musiclength)
 
-        await asyncio.sleep(int(musiclength)+3)
+        await asyncio.sleep(int(musiclength)+2)
         print("wake up")
         if(endless == True):
             await playmusic(message)
+        if(endless == False):
+            await message.channel.send("再生を終了しました。")
+
 
 
 
