@@ -8,7 +8,6 @@ import subprocess
 import glob     #条件に一致するファイルを取得
 import time
 from discord.ext import commands
-import sche
 
 from pydub import AudioSegment
 
