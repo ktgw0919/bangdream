@@ -7,16 +7,20 @@ import os
 import subprocess
 import glob     #条件に一致するファイルを取得
 import time
-from discord.ext import commands
+import asyncio
+from discord.ext import commands,tasks
 
 from pydub import AudioSegment
 
+playbot=1011929691566903306
+
+
+#音楽の長さを取得する関数
 def getTime(musicpath):
     sound = AudioSegment.from_file(musicpath, "m4a")
     # 情報の取得
     time = sound.duration_seconds # 再生時間(秒)
     # 情報の表示
-    print('再生時間：', time)
     return time
 
 
@@ -25,10 +29,49 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+
+
+#メッセージを送る関数
 async def sendMessage():
     print("send")
-    botRoom = client.get_channel(1011929691566903306)   # botが投稿するチャンネルのID
+    botRoom = client.get_channel(playbot)   # botが投稿するチャンネルのID
     await botRoom.send("!play")
+
+
+
+
+#無限再生用
+endless=False
+
+async def playmusic(message):
+    if message.guild.voice_client is None:
+        await message.channel.send("接続していません。")
+    elif message.guild.voice_client.is_playing():
+        await message.channel.send("再生中です。")
+    else:
+        #再生する曲をランダムで選択
+        musiclist = glob.glob('../million/*.m4a')
+        music = random.choice(musiclist)
+        if(endless == True):
+            print("endless is True")
+        else:
+            print("endless is False")
+
+        musiclength = getTime(music)
+
+        music1 = os.path.split(music)[1]
+        source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(music), volume=0.1)
+        message.guild.voice_client.play(source)
+        await message.channel.send("”"+music1+"”を再生します。")
+        print(music1)
+        print(musiclength)
+
+        await asyncio.sleep(int(musiclength)+3)
+        print("wake up")
+        if(endless == True):
+            await playmusic(message)
+
+
 
 
 
@@ -36,7 +79,7 @@ async def sendMessage():
 # 起動時処理
 @client.event
 async def on_ready():
-    botRoom = client.get_channel(1011929691566903306)   # botが投稿するチャンネルのID
+    botRoom = client.get_channel(playbot)   # botが投稿するチャンネルのID
     await botRoom.send("BOTが起動しました!")
     #サーバーにあるチャンネル情報の取得
     for channel in client.get_all_channels():
@@ -50,14 +93,12 @@ async def on_ready():
     print(client.user.id)
     print('------')
 
+   
+
+
 
 @client.event
 async def on_message(message):# メッセージが送られた時の処理
-
-    if client.user != message.author:
-        if message.content.startswith("test"): 
-            print("test")
-            sendMessage
 
 
     # 送信者がBOTの場合反応しない
@@ -65,7 +106,7 @@ async def on_message(message):# メッセージが送られた時の処理
         #return
 
     # 挨拶機能
-    if client.user != message.author:
+    if not message.author.bot:
         if message.content.startswith("おはよう"):  # メッセージが「おはよう」で始まるか調べる
             m = "おはようございます " + message.author.name + " さん！"  # 返信の内容
             await message.channel.send(m)# メッセージが送られてきたチャンネルへメッセージを送る
@@ -119,8 +160,8 @@ async def on_message(message):# メッセージが送られた時の処理
 
 
     #音楽再生
+    global endless
     #再生処理
-    musiclength=0
     if message.content == "!play":
         if message.guild.voice_client is None:
             await message.channel.send("接続していません。")
@@ -131,16 +172,14 @@ async def on_message(message):# メッセージが送られた時の処理
             musiclist = glob.glob('../million/*.m4a')
             music = random.choice(musiclist)
 
-            musiclength = getTime(music)+2
+            musiclength = getTime(music)
 
             music1 = os.path.split(music)[1]
             source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(music), volume=0.1)
             message.guild.voice_client.play(source)
             await message.channel.send("”"+music1+"”を再生します。")
             print(music1)
-            print(musiclength)
-
-            
+            print(musiclength)            
 
     #停止処理
     elif message.content == "!stop":
@@ -152,7 +191,31 @@ async def on_message(message):# メッセージが送られた時の処理
             await message.channel.send("再生していません。")
         else:
             message.guild.voice_client.stop()
+            endless = False
             await message.channel.send("ストップしました。")
+
+            
+    #停止処理2
+    elif message.content == "!lastplay":
+        if message.guild.voice_client is None:
+            await message.channel.send("接続していません。")
+
+        # 再生中ではない場合は実行しない
+        elif not message.guild.voice_client.is_playing():
+            await message.channel.send("再生していません。")
+        else:
+            endless = False
+            await message.channel.send("この曲で終了します。")
+
+
+        
+    #無限再生処理
+    if message.content == "!endlessplay":
+        endless = True
+        await playmusic(message)
+
+
+
 
 
 # チャンネル入退室時の通知処理
@@ -179,6 +242,4 @@ async def on_voice_state_update(member, before, after):
             
 
 # Botのトークンを指定（デベロッパーサイトで確認可能）
-client.run("hoge")
-
-
+client.run("hoge token")
