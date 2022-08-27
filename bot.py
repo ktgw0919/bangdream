@@ -15,20 +15,19 @@ from pydub import AudioSegment
 playbot=1011929691566903306
 
 
-#音楽の長さを取得する関数
-def getTime(musicpath):
-    sound = AudioSegment.from_file(musicpath, "m4a")
-    # 情報の取得
-    time = sound.duration_seconds # 再生時間(秒)
-    # 情報の表示
-    return time
 
 
-# よくわからん。おまじない。
+# よくわからん。おまじない
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+
+#音楽の長さを取得する
+def getTime(musicpath):
+    sound = AudioSegment.from_file(musicpath, "m4a")    # 情報の取得
+    time = sound.duration_seconds # 再生時間(秒)、注意：float型
+    return time
 
 
 #メッセージを送る関数
@@ -41,8 +40,9 @@ async def sendMessage():
 
 
 #無限再生用
-endless=False
-
+endless = False
+preMusic = None
+#音楽を無限に再生する関数
 async def playmusic(message):
     global endless
     if message.guild.voice_client is None:
@@ -51,8 +51,18 @@ async def playmusic(message):
         await message.channel.send("再生中です。")
     else:
         #再生する曲をランダムで選択
-        musiclist = glob.glob('../million/*.m4a')
-        music = random.choice(musiclist)
+        MusicPathList = glob.glob('../million/*.m4a')
+
+        global preMusic
+        music = None
+
+        while True:
+            print(preMusic)
+            music = random.choice(MusicPathList)
+            if music != preMusic:
+                preMusic=music
+                print(preMusic)
+                break
 
         musiclength = getTime(music)
 
@@ -69,8 +79,6 @@ async def playmusic(message):
             await playmusic(message)
         if(endless == False):
             await message.channel.send("再生を終了しました。")
-
-
 
 
 
@@ -96,9 +104,9 @@ async def on_ready():
    
 
 
-
+# メッセージが送られた時の処理
 @client.event
-async def on_message(message):# メッセージが送られた時の処理
+async def on_message(message):
 
 
     # 送信者がBOTの場合反応しない
@@ -242,4 +250,4 @@ async def on_voice_state_update(member, before, after):
             
 
 # Botのトークンを指定（デベロッパーサイトで確認可能）
-client.run("hoge token")
+client.run("hoge")
