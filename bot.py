@@ -42,28 +42,33 @@ async def sendMessage():
 #無限再生用
 endless = False
 preMusic = None
+nextmusic = "m4a"
 #音楽を無限に再生する関数
 async def playmusic(message):
     global endless
+    global nextmusic
     if message.guild.voice_client is None:
         await message.channel.send("接続していません。")
     elif message.guild.voice_client.is_playing():
         await message.channel.send("再生中です。")
     else:
-        #再生する曲をランダムで選択
-        MusicPathList = glob.glob('../million/*.m4a')
 
         global preMusic
         music = None
 
-        while True:
+        #再生する曲をランダムで選択
+        for i in range(100):
+            MusicPathList = glob.glob('../million/*'+nextmusic+'*')
+            print(i)
             print(preMusic)
             music = random.choice(MusicPathList)
+            #前回流れた曲と同じ曲が選ばれたら再抽選(100回まで)
             if music != preMusic:
                 preMusic=music
                 print(preMusic)
                 break
 
+        nextmusic='m4a'
         musiclength = getTime(music)
 
         music1 = os.path.split(music)[1]
@@ -77,8 +82,8 @@ async def playmusic(message):
         print("wake up")
         if(endless == True):
             await playmusic(message)
-        if(endless == False):
-            await message.channel.send("再生を終了しました。")
+        #if(endless == False):
+            #await message.channel.send("再生を終了しました。")
 
 
 
@@ -142,7 +147,7 @@ async def on_message(message):
 
 
     # 読み上げ機能
-    # BOT入退出
+    # 全BOT入退出
     if message.content == "!join":
         if message.author.voice is None:
             await message.channel.send("あなたはボイスチャンネルに接続していません。")
@@ -159,12 +164,33 @@ async def on_message(message):
             await message.channel.send("*BOT* が退出しました！")
 
 
+    # BOT入退出
+    if message.content == "!musicjoin":
+        if message.author.voice is None:
+            await message.channel.send("あなたはボイスチャンネルに接続していません。")
+        # BOTがボイスチャンネルに接続する
+        else:
+            await message.author.voice.channel.connect()
+            await message.channel.send("**" + message.author.voice.channel.name + "** に、*BOT*  が入室しました！")
+    elif message.content == "!musicleave":
+        if message.guild.voice_client is None:
+            await message.channel.send("BOTはボイスチャンネルに接続していません。")
+        else:
+            # 切断する
+            await message.guild.voice_client.disconnect()
+            await message.channel.send("*BOT* が退出しました！")
+
+
+
+
     # 入力を監視する対象のテキストチャンネル
     ReadingoutloudCannelIds = [1009332840120451113,1009329150928093224]
     #メッセージが送られたチャンネルを取得
     chid=message.channel.id
     if chid in ReadingoutloudCannelIds:
         print(0)
+
+
 
 
     #音楽再生
@@ -187,7 +213,34 @@ async def on_message(message):
             message.guild.voice_client.play(source)
             await message.channel.send("”"+music1+"”を再生します。")
             print(music1)
-            print(musiclength)            
+            print(musiclength)    
+            
+
+            
+    #選択再生処理
+    if message.content.startswith("!play:"):
+        if message.guild.voice_client is None:
+            await message.channel.send("接続していません。")
+        elif message.guild.voice_client.is_playing():
+            await message.channel.send("再生中です。")
+        else:
+            musicname=message.content[6:]
+            print(musicname)
+            musiclist = glob.glob('../million/*'+musicname+'*')
+            if not musiclist:
+                await message.channel.send("” "+musicname+"” は存在しません。")
+            else:
+                music = random.choice(musiclist)
+
+                musiclength = getTime(music)
+
+                music1 = os.path.split(music)[1]
+                source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(music), volume=0.1)
+                message.guild.voice_client.play(source)
+                await message.channel.send("”"+music1+"”を再生します。")
+                print(music1)
+                print(musiclength) 
+
 
     #停止処理
     elif message.content == "!stop":
@@ -222,6 +275,19 @@ async def on_message(message):
         endless = True
         await playmusic(message)
 
+    global nextmusic
+    if message.content.startswith("!nextplay:"):
+        if endless == False:
+            await message.channel.send("連続再生中ではありません。")
+        else:
+            localnextmusic = message.content[10:]
+            musiclist = glob.glob('../million/*'+localnextmusic+'*')
+            if not musiclist:
+                await message.channel.send("” "+localnextmusic+"” は存在しません。")
+            else:
+                nextmusic = message.content[10:]
+                await message.channel.send("曲指定に成功しました。")
+
 
 
 
@@ -240,14 +306,15 @@ async def on_voice_state_update(member, before, after):
 
         # 退室通知
         if before.channel is not None and before.channel.id in announceChannelIds:
-            if member.name != client.user.name:
+            if not member.bot:
                 await botRoom.send("**" + before.channel.name + "** から、*" + member.name + "*  が現実に戻りました！")
         # 入室通知&BOT入室
         if after.channel is not None and after.channel.id in announceChannelIds:
-            if member.name != client.user.name:
+            if not member.bot:
                 await botRoom.send("**" + after.channel.name + "** に、*" + member.name + "*  が現実逃避に来ました！")
                 #await member.voice.channel.connect()
             
 
 # Botのトークンを指定（デベロッパーサイトで確認可能）
-client.run("hoge")
+client.run("MTAwOTE0MzIzNDMyMjI1MTgyNw.Gmg0fk.5elPEwnIPt-5gAdO5fOxXNHYRJ9MkjbXUf2cBo")
+#client.run("hoge")
